@@ -33,6 +33,7 @@ campus_places = [
     {"id": 17, "name": "3B宿舍楼", "location": "学生宿舍"},
 ]
 
+
 ############################################
 # KMP算法
 ############################################
@@ -80,6 +81,101 @@ def KMP(text, pattern):
 
 
 ############################################
+# BM算法
+############################################
+
+def build_bad(pattern):
+
+    bad = {}
+
+    for i in range(len(pattern)):
+        bad[pattern[i]] = i
+
+    return bad
+
+
+def BM(text, pattern):
+
+    n = len(text)
+    m = len(pattern)
+
+    if m == 0:
+        return True
+
+    bad = build_bad(pattern)
+
+    s = 0
+
+    while s <= n - m:
+
+        j = m - 1
+
+        while j >= 0 and pattern[j] == text[s + j]:
+            j -= 1
+
+        if j < 0:
+            return True
+
+        else:
+
+            c = text[s + j]
+
+            s += max(1, j - bad.get(c, -1))
+
+    return False
+
+
+############################################
+# 查看所有地点
+############################################
+
+def show_all_places():
+
+    print("\n=====全部地点=====")
+
+    for p in campus_places:
+        print(
+            f"[{p['id']}] "
+            f"{p['name']} - "
+            f"{p['location']}"
+        )
+
+    print("地点总数:", len(campus_places))
+
+
+############################################
+# KMP名称查询
+############################################
+
+def search_by_name():
+
+    key = input("输入地点名称:")
+
+    found = False
+
+    for p in campus_places:
+
+        if KMP(p["name"], key):
+
+            print(
+                f"\n编号:{p['id']}"
+            )
+
+            print(
+                f"名称:{p['name']}"
+            )
+
+            print(
+                f"位置:{p['location']}"
+            )
+
+            found = True
+
+    if not found:
+        print("未找到")
+
+
+############################################
 # BM模糊查询
 ############################################
 
@@ -119,9 +215,6 @@ def fuzzy_search():
     else:
         print("未找到")
 
-# =========================
-# 功能函数区域
-# =========================
 
 ############################################
 # 分类查询（保留V2）
@@ -343,8 +436,4 @@ def main():
 
 if __name__=="__main__":
 
-    main()
-
-# 程序入口
-if __name__ == "__main__":
     main()
