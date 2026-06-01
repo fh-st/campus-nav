@@ -33,137 +33,172 @@ campus_places = [
 # 功能函数区域
 # =========================
 
-# 显示所有地点
-def show_all_places():
-    print("\n===== 校园全部地点 =====")
+############################################
+# 分类查询（保留V2）
+############################################
 
-    for p in campus_places:
-        print(f"[{p['id']}] {p['name']} - {p['location']}")
-
-    print(f"\n当前共有 {len(campus_places)} 个地点。")
-
-
-# 按名称精确查询
-def search_by_name():
-    name = input("请输入地点名称：")
-
-    found = False
-
-    for p in campus_places:
-        if p["name"] == name:
-            print("\n===== 查询结果 =====")
-            print(f"编号：{p['id']}")
-            print(f"名称：{p['name']}")
-            print(f"位置说明：{p['location']}")
-            found = True
-            break
-
-    if not found:
-        print("未找到该地点。")
-
-
-# 模糊查询（关键字搜索）
-def fuzzy_search():
-    keyword = input("请输入关键字：")
-
-    result = []
-
-    for p in campus_places:
-        # 名称或地点说明中包含关键字
-        if keyword in p["name"] or keyword in p["location"]:
-            result.append(p)
-
-    print("\n===== 模糊查询结果 =====")
-
-    if len(result) > 0:
-        for p in result:
-            print(f"[{p['id']}] {p['name']} - {p['location']}")
-
-        print(f"\n共找到 {len(result)} 个相关地点。")
-
-    else:
-        print("未找到相关地点。")
-
-
-# 按类别查询
 def search_by_category():
-    print("\n===== 地点类别 =====")
-    print("1 教学楼")
-    print("2 学生宿舍")
-    print("3 食堂")
-    print("4 体育设施")
-    print("5 图书馆")
-    print("6 活动中心")
 
-    choice = input("请选择类别：")
+    category=input(
+        "输入类别:"
+    )
 
-    category_map = {
-        "1": "教学楼",
-        "2": "学生宿舍",
-        "3": "食堂",
-        "4": "体育",
-        "5": "图书馆",
-        "6": "活动"
-    }
-
-    if choice not in category_map:
-        print("输入无效。")
-        return
-
-    keyword = category_map[choice]
-
-    print("\n===== 分类查询结果 =====")
-
-    count = 0
+    count=0
 
     for p in campus_places:
-        if keyword in p["location"] or keyword in p["name"]:
-            print(f"[{p['id']}] {p['name']} - {p['location']}")
-            count += 1
 
-    print(f"\n共找到 {count} 个地点。")
+        if category in p["location"]:
+
+            print(
+                f"[{p['id']}]"
+                f"{p['name']}"
+            )
+
+            count+=1
+
+    print(
+        f"共{count}个"
+    )
 
 
-# 查询统计
+############################################
+# 添加
+############################################
+
+def add_place():
+
+    id=int(
+        input("编号:")
+    )
+
+    name=input(
+        "名称:"
+    )
+
+    loc=input(
+        "位置:"
+    )
+
+    campus_places.append(
+        {
+            "id":id,
+            "name":name,
+            "location":loc
+        }
+    )
+
+    print("添加成功")
+
+
+############################################
+# 删除
+############################################
+
+def delete_place():
+
+    id=int(
+        input("输入编号:")
+    )
+
+    for p in campus_places:
+
+        if p["id"]==id:
+
+            campus_places.remove(p)
+
+            print("删除成功")
+
+            return
+
+    print("未找到")
+
+
+############################################
+# 修改
+############################################
+
+def modify_place():
+
+    id=int(
+        input("输入编号:")
+    )
+
+    for p in campus_places:
+
+        if p["id"]==id:
+
+            p["name"]=input(
+                "新名称:"
+            )
+
+            p["location"]=input(
+                "新位置:"
+            )
+
+            print("修改成功")
+
+            return
+
+    print("未找到")
+
+
+############################################
+# 排序
+############################################
+
+def sort_places():
+
+    campus_places.sort(
+        key=lambda x:x["name"]
+    )
+
+    print("排序完成")
+
+
+############################################
+# 统计（保留V2）
+############################################
+
 def statistics():
-    total = len(campus_places)
 
-    teaching = 0
-    dormitory = 0
-    sports = 0
-
-    for p in campus_places:
-
-        if "教学楼" in p["location"]:
-            teaching += 1
-
-        elif "宿舍" in p["location"]:
-            dormitory += 1
-
-        elif "体育" in p["location"]:
-            sports += 1
-
-    print("\n===== 校园地点统计 =====")
-    print(f"地点总数：{total}")
-    print(f"教学楼数量：{teaching}")
-    print(f"宿舍楼数量：{dormitory}")
-    print(f"体育设施数量：{sports}")
+    print(
+        "\n地点总数:",
+        len(campus_places)
+    )
 
 
-# 显示菜单
+############################################
+# 菜单
+############################################
+
 def show_menu():
-    print("\n========== 校园导航查询系统 V2.0 ==========")
-    print("1 查看所有地点")
-    print("2 按名称精确查询")
-    print("3 模糊查询")
-    print("4 按类别查询")
-    print("5 地点统计")
-    print("0 退出系统")
+
+    print("\n======V3.0======")
+
+    print("1 查看地点")
+
+    print("2 KMP名称查询")
+
+    print("3 BM模糊查询")
+
+    print("4 分类查询")
+
+    print("5 添加地点")
+
+    print("6 删除地点")
+
+    print("7 修改地点")
+
+    print("8 名称排序")
+
+    print("9 地点统计")
+
+    print("0 退出")
 
 
-# =========================
+############################################
 # 主函数
-# =========================
+############################################
 
 def main():
 
@@ -171,30 +206,54 @@ def main():
 
         show_menu()
 
-        choice = input("请输入操作序号：")
+        choice=input(
+            "输入:"
+        )
 
-        if choice == "1":
+        if choice=="1":
             show_all_places()
 
-        elif choice == "2":
+        elif choice=="2":
             search_by_name()
 
-        elif choice == "3":
+        elif choice=="3":
             fuzzy_search()
 
-        elif choice == "4":
+        elif choice=="4":
             search_by_category()
 
-        elif choice == "5":
+        elif choice=="5":
+            add_place()
+
+        elif choice=="6":
+            delete_place()
+
+        elif choice=="7":
+            modify_place()
+
+        elif choice=="8":
+            sort_places()
+
+        elif choice=="9":
             statistics()
 
-        elif choice == "0":
-            print("系统已退出，欢迎下次使用。")
+        elif choice=="0":
+
+            print(
+                "系统退出"
+            )
+
             break
 
         else:
-            print("输入无效，请重新输入。")
+            print(
+                "输入错误"
+            )
 
+
+if __name__=="__main__":
+
+    main()
 
 # 程序入口
 if __name__ == "__main__":
