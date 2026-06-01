@@ -29,6 +29,46 @@ campus_places = [
 ]
 
 
+############################################
+# BM模糊查询
+############################################
+
+def fuzzy_search():
+
+    key = input("输入关键字:")
+
+    result = []
+
+    for p in campus_places:
+
+        text = (
+            p["name"] +
+            p["location"]
+        )
+
+        if BM(text, key):
+
+            result.append(p)
+
+    print("\n=====查询结果=====")
+
+    if len(result):
+
+        for p in result:
+
+            print(
+                f"[{p['id']}] "
+                f"{p['name']} - "
+                f"{p['location']}"
+            )
+
+        print(
+            f"\n找到{len(result)}个地点"
+        )
+
+    else:
+        print("未找到")
+
 # =========================
 # 功能函数区域
 # =========================
