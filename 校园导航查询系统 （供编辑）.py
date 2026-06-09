@@ -227,3 +227,254 @@ def count_leaf(root):
         + count_leaf(root.right)
     )
 
+
+# ==========================================
+# 功能函数
+# ==========================================
+
+def show_all():
+
+    print("\n=====全部地点=====")
+
+    for p in campus_places:
+
+        print(
+            f"[{p['id']}] "
+            f"{p['name']} - "
+            f"{p['location']}"
+        )
+
+
+def search_by_name():
+
+    key = input("输入地点名称：")
+
+    found = False
+
+    for p in campus_places:
+
+        if kmp(p["name"], key):
+
+            print(p)
+
+            found = True
+
+    if not found:
+        print("未找到")
+
+
+def fuzzy_search():
+
+    key = input("输入关键字：")
+
+    found = False
+
+    for p in campus_places:
+
+        text = p["name"] + p["location"]
+
+        if bm(text, key):
+
+            print(p)
+
+            found = True
+
+    if not found:
+        print("未找到")
+
+
+def search_by_category():
+
+    key = input("输入类别：")
+
+    count = 0
+
+    for p in campus_places:
+
+        if key in p["location"]:
+
+            print(p)
+
+            count += 1
+
+    print("共找到", count, "个地点")
+
+
+def add_place():
+
+    id = int(input("编号:"))
+
+    name = input("名称:")
+
+    location = input("位置:")
+
+    campus_places.append(
+        {
+            "id": id,
+            "name": name,
+            "location": location
+        }
+    )
+
+    print("添加成功")
+
+
+def delete_place():
+
+    id = int(input("编号:"))
+
+    for p in campus_places:
+
+        if p["id"] == id:
+
+            campus_places.remove(p)
+
+            print("删除成功")
+
+            return
+
+    print("未找到")
+
+
+def modify_place():
+
+    id = int(input("编号:"))
+
+    for p in campus_places:
+
+        if p["id"] == id:
+
+            p["name"] = input("新名称:")
+
+            p["location"] = input("新位置:")
+
+            print("修改成功")
+
+            return
+
+    print("未找到")
+
+
+def statistics():
+
+    print("地点总数:", len(campus_places))
+
+
+def bst_query():
+
+    root = build_bst()
+
+    id = int(input("输入编号:"))
+
+    result = bst_search(root, id)
+
+    if result:
+
+        print(result)
+
+    else:
+
+        print("未找到")
+
+
+def bst_info():
+
+    root = build_bst()
+
+    print(
+        "树高:",
+        tree_height(root)
+    )
+
+    print(
+        "叶子节点数:",
+        count_leaf(root)
+    )
+
+
+# ==========================================
+# 菜单
+# ==========================================
+
+def menu():
+
+    print("\n====== V4.0 ======")
+
+    print("1 查看全部地点")
+    print("2 KMP名称查询")
+    print("3 BM模糊查询")
+    print("4 分类查询")
+    print("5 添加地点")
+    print("6 删除地点")
+    print("7 修改地点")
+    print("8 地点统计")
+
+    print("9 BST编号查询")
+    print("10 BST中序遍历")
+    print("11 BST统计信息")
+
+    print("0 退出")
+
+
+# ==========================================
+# 主函数
+# ==========================================
+
+def main():
+
+    while True:
+
+        menu()
+
+        choice = input("请选择：")
+
+        if choice == "1":
+            show_all()
+
+        elif choice == "2":
+            search_by_name()
+
+        elif choice == "3":
+            fuzzy_search()
+
+        elif choice == "4":
+            search_by_category()
+
+        elif choice == "5":
+            add_place()
+
+        elif choice == "6":
+            delete_place()
+
+        elif choice == "7":
+            modify_place()
+
+        elif choice == "8":
+            statistics()
+
+        elif choice == "9":
+            bst_query()
+
+        elif choice == "10":
+
+            root = build_bst()
+
+            inorder(root)
+
+        elif choice == "11":
+            bst_info()
+
+        elif choice == "0":
+
+            print("系统退出")
+
+            break
+
+        else:
+
+            print("输入错误")
+
+
+if __name__ == "__main__":
+    main()
+
