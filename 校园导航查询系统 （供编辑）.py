@@ -75,9 +75,9 @@ def kmp(text, pattern):
     return False
 
 
-############################################
+# ==========================================
 # BM算法
-############################################
+# ==========================================
 
 def build_bad(pattern):
 
@@ -89,7 +89,7 @@ def build_bad(pattern):
     return bad
 
 
-def BM(text, pattern):
+def bm(text, pattern):
 
     n = len(text)
     m = len(pattern)
@@ -111,324 +111,119 @@ def BM(text, pattern):
         if j < 0:
             return True
 
-        else:
-
-            c = text[s + j]
-
-            s += max(1, j - bad.get(c, -1))
+        s += max(1, j - bad.get(text[s + j], -1))
 
     return False
 
 
-############################################
-# 查看所有地点
-############################################
+# ==========================================
+# BST
+# ==========================================
 
-def show_all_places():
+class TreeNode:
 
-    print("\n=====全部地点=====")
+    def __init__(self, place):
 
-    for p in campus_places:
-        print(
-            f"[{p['id']}] "
-            f"{p['name']} - "
-            f"{p['location']}"
-        )
-
-    print("地点总数:", len(campus_places))
+        self.place = place
+        self.left = None
+        self.right = None
 
 
-############################################
-# KMP名称查询
-############################################
+def insert_bst(root, place):
 
-def search_by_name():
+    if root is None:
+        return TreeNode(place)
 
-    key = input("输入地点名称:")
+    if place["id"] < root.place["id"]:
 
-    found = False
-
-    for p in campus_places:
-
-        if KMP(p["name"], key):
-
-            print(
-                f"\n编号:{p['id']}"
-            )
-
-            print(
-                f"名称:{p['name']}"
-            )
-
-            print(
-                f"位置:{p['location']}"
-            )
-
-            found = True
-
-    if not found:
-        print("未找到")
-
-
-############################################
-# BM模糊查询
-############################################
-
-def fuzzy_search():
-
-    key = input("输入关键字:")
-
-    result = []
-
-    for p in campus_places:
-
-        text = (
-            p["name"] +
-            p["location"]
-        )
-
-        if BM(text, key):
-
-            result.append(p)
-
-    print("\n=====查询结果=====")
-
-    if len(result):
-
-        for p in result:
-
-            print(
-                f"[{p['id']}] "
-                f"{p['name']} - "
-                f"{p['location']}"
-            )
-
-        print(
-            f"\n找到{len(result)}个地点"
+        root.left = insert_bst(
+            root.left,
+            place
         )
 
     else:
-        print("未找到")
 
-
-############################################
-# 分类查询（保留V2）
-############################################
-
-def search_by_category():
-
-    category=input(
-        "输入类别:"
-    )
-
-    count=0
-
-    for p in campus_places:
-
-        if category in p["location"]:
-
-            print(
-                f"[{p['id']}]"
-                f"{p['name']}"
-            )
-
-            count+=1
-
-    print(
-        f"共{count}个"
-    )
-
-
-############################################
-# 添加
-############################################
-
-def add_place():
-
-    id=int(
-        input("编号:")
-    )
-
-    name=input(
-        "名称:"
-    )
-
-    loc=input(
-        "位置:"
-    )
-
-    campus_places.append(
-        {
-            "id":id,
-            "name":name,
-            "location":loc
-        }
-    )
-
-    print("添加成功")
-
-
-############################################
-# 删除
-############################################
-
-def delete_place():
-
-    id=int(
-        input("输入编号:")
-    )
-
-    for p in campus_places:
-
-        if p["id"]==id:
-
-            campus_places.remove(p)
-
-            print("删除成功")
-
-            return
-
-    print("未找到")
-
-
-############################################
-# 修改
-############################################
-
-def modify_place():
-
-    id=int(
-        input("输入编号:")
-    )
-
-    for p in campus_places:
-
-        if p["id"]==id:
-
-            p["name"]=input(
-                "新名称:"
-            )
-
-            p["location"]=input(
-                "新位置:"
-            )
-
-            print("修改成功")
-
-            return
-
-    print("未找到")
-
-
-############################################
-# 排序
-############################################
-
-def sort_places():
-
-    campus_places.sort(
-        key=lambda x:x["name"]
-    )
-
-    print("排序完成")
-
-
-############################################
-# 统计（保留V2）
-############################################
-
-def statistics():
-
-    print(
-        "\n地点总数:",
-        len(campus_places)
-    )
-
-
-############################################
-# 菜单
-############################################
-
-def show_menu():
-
-    print("\n======V3.0======")
-
-    print("1 查看地点")
-
-    print("2 KMP名称查询")
-
-    print("3 BM模糊查询")
-
-    print("4 分类查询")
-
-    print("5 添加地点")
-
-    print("6 删除地点")
-
-    print("7 修改地点")
-
-    print("8 名称排序")
-
-    print("9 地点统计")
-
-    print("0 退出")
-
-
-############################################
-# 主函数
-############################################
-
-def main():
-
-    while True:
-
-        show_menu()
-
-        choice=input(
-            "输入:"
+        root.right = insert_bst(
+            root.right,
+            place
         )
 
-        if choice=="1":
-            show_all_places()
-
-        elif choice=="2":
-            search_by_name()
-
-        elif choice=="3":
-            fuzzy_search()
-
-        elif choice=="4":
-            search_by_category()
-
-        elif choice=="5":
-            add_place()
-
-        elif choice=="6":
-            delete_place()
-
-        elif choice=="7":
-            modify_place()
-
-        elif choice=="8":
-            sort_places()
-
-        elif choice=="9":
-            statistics()
-
-        elif choice=="0":
-
-            print(
-                "系统退出"
-            )
-
-            break
-
-        else:
-            print(
-                "输入错误"
-            )
+    return root
 
 
-if __name__=="__main__":
+def build_bst():
 
-    main()
+    root = None
+
+    for p in campus_places:
+
+        root = insert_bst(
+            root,
+            p
+        )
+
+    return root
+
+
+def bst_search(root, target):
+
+    if root is None:
+        return None
+
+    if target == root.place["id"]:
+        return root.place
+
+    elif target < root.place["id"]:
+
+        return bst_search(
+            root.left,
+            target
+        )
+
+    else:
+
+        return bst_search(
+            root.right,
+            target
+        )
+
+
+def inorder(root):
+
+    if root:
+
+        inorder(root.left)
+
+        print(
+            f"[{root.place['id']}] "
+            f"{root.place['name']} - "
+            f"{root.place['location']}"
+        )
+
+        inorder(root.right)
+
+
+def tree_height(root):
+
+    if root is None:
+        return 0
+
+    return max(
+        tree_height(root.left),
+        tree_height(root.right)
+    ) + 1
+
+
+def count_leaf(root):
+
+    if root is None:
+        return 0
+
+    if root.left is None and root.right is None:
+        return 1
+
+    return (
+        count_leaf(root.left)
+        + count_leaf(root.right)
+    )
+
