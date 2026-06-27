@@ -1,164 +1,268 @@
 # ==========================================
-# 校园导航查询系统 V5.0（图结构扩展版）
-# 数据结构：List + Dictionary + BST + 无向图
-# 算法：KMP、BM、BST、BFS（图最短路径）
-# 承接V4全部功能，新增校园道路连通图模块
+# 什邡校区校园导航 V6.3 完整修复版
+# 修复Tkinter参数错误 | 登录框支持显示密码 | 管理员权限管控道路编辑
+# 无弹窗操作日志 | JSON持久化 | Dijkstra/BFS双路线算法
 # ==========================================
-campus_places = [
-    {"id": 1, "name": "弘义楼", "location": "教学楼"},
-    {"id": 2, "name": "致远楼", "location": "教学楼"},
-    {"id": 3, "name": "明德楼", "location": "教学楼"},
-    {"id": 4, "name": "明理楼", "location": "教学楼"},
-    {"id": 5, "name": "明志楼", "location": "教学楼"},
-    {"id": 6, "name": "明善楼", "location": "教学楼"},
-    {"id": 7, "name": "图书馆", "location": "校内图书阅览中心"},
-    {"id": 8, "name": "筑梦活动中心", "location": "校内活动场所"},
-    {"id": 9, "name": "旭日餐厅", "location": "校内食堂"},
-    {"id": 10, "name": "体育场", "location": "校内运动场地"},
-    {"id": 11, "name": "看台", "location": "体育场附属设施"},
-    {"id": 12, "name": "1A宿舍楼", "location": "学生宿舍"},
-    {"id": 13, "name": "1B宿舍楼", "location": "学生宿舍"},
-    {"id": 14, "name": "2A宿舍楼", "location": "学生宿舍"},
-    {"id": 15, "name": "2B宿舍楼", "location": "学生宿舍"},
-    {"id": 16, "name": "3A宿舍楼", "location": "学生宿舍"},
-    {"id": 17, "name": "3B宿舍楼", "location": "学生宿舍"},
-]
+import json
+import os
+import heapq
+import tkinter as tk
+from tkinter import ttk, scrolledtext
 
-# ====================== 新增：无向图结构实现 ======================
+# 管理员配置
+ADMIN_PWD = "admin123"
+IS_ADMIN = False
+
+# 持久化文件路径
+PLACE_FILE = "places.json"
+GRAPH_FILE = "graph_road.json"
+
+# 校区点位（严格匹配实拍地图）
+init_campus_places = [
+    # 教学楼组团
+    {"id": 1, "name": "弘义楼西", "location": "教学楼", "x": 110, "y": 305},
+    {"id": 2, "name": "弘义楼", "location": "教学楼", "x": 210, "y": 305},
+    {"id": 3, "name": "弘义楼东", "location": "教学楼", "x": 310, "y": 305},
+    {"id": 4, "name": "明德楼", "location": "教学楼", "x": 110, "y": 365},
+    {"id": 5, "name": "致远楼", "location": "教学楼", "x": 210, "y": 365},
+    {"id": 6, "name": "明志楼", "location": "教学楼", "x": 310, "y": 365},
+    {"id": 7, "name": "明理楼", "location": "教学楼", "x": 110, "y": 425},
+    {"id": 8, "name": "明善楼", "location": "教学楼", "x": 310, "y": 425},
+    {"id": 9, "name": "图书馆", "location": "图书阅览中心", "x": 210, "y": 495},
+    # 中部生活服务区域
+    {"id": 10, "name": "筑梦活动中心", "location": "生活服务", "x": 435, "y": 305},
+    {"id": 11, "name": "旭日餐厅", "location": "食堂", "x": 495, "y": 305},
+    {"id": 12, "name": "文印室", "location": "生活服务", "x": 395, "y": 262},
+    {"id": 13, "name": "旭日超市", "location": "生活服务", "x": 465, "y": 262},
+    {"id": 14, "name": "奶茶店水果店", "location": "生活服务", "x": 528, "y": 262},
+    {"id": 15, "name": "水站", "location": "生活服务", "x": 582, "y": 262},
+    # 公寓宿舍楼区
+    {"id": 16, "name": "1A公寓楼", "location": "学生公寓", "x": 622, "y": 305},
+    {"id": 17, "name": "1B公寓楼", "location": "学生公寓", "x": 622, "y": 345},
+    {"id": 18, "name": "2A公寓楼", "location": "学生公寓", "x": 682, "y": 345},
+    {"id": 19, "name": "2B公寓楼", "location": "学生公寓", "x": 682, "y": 385},
+    {"id": 20, "name": "3A公寓楼", "location": "学生公寓", "x": 762, "y": 345},
+    {"id": 21, "name": "3B公寓楼", "location": "学生公寓", "x": 762, "y": 385},
+    # 公寓配套商铺
+    {"id": 22, "name": "理发店", "location": "生活服务", "x": 650, "y": 262},
+    {"id": 23, "name": "菜鸟驿站(1A/1B公寓)", "location": "生活服务", "x": 692, "y": 262},
+    {"id": 24, "name": "菜鸟驿站(3A/3B公寓)", "location": "生活服务", "x": 780, "y": 262},
+    # 运动场地
+    {"id": 25, "name": "体育场", "location": "运动场地", "x": 562, "y": 445},
+    {"id": 26, "name": "看台", "location": "体育场附属", "x": 622, "y": 445},
+    # 校门与配套设施
+    {"id": 27, "name": "正大门", "location": "校门入口", "x": 362, "y": 222},
+    {"id": 28, "name": "开闭站", "location": "电力配套", "x": 462, "y": 232},
+    {"id": 29, "name": "水泵房", "location": "后勤设施", "x": 282, "y": 262},
+    {"id": 30, "name": "北二门", "location": "校门入口", "x": 722, "y": 232},
+    {"id": 31, "name": "迎新商业服务点", "location": "商业服务", "x": 652, "y": 372},
+]
+campus_places = []
+
+# ---------------------- 持久化读写工具 ----------------------
+def save_places():
+    with open(PLACE_FILE, "w", encoding="utf-8") as f:
+        json.dump(campus_places, f, ensure_ascii=False, indent=2)
+
+def load_places():
+    global campus_places
+    try:
+        if os.path.exists(PLACE_FILE):
+            with open(PLACE_FILE, "r", encoding="utf-8") as f:
+                campus_places = json.load(f)
+        else:
+            campus_places = init_campus_places.copy()
+            save_places()
+    except Exception:
+        campus_places = init_campus_places.copy()
+        save_places()
+
+def save_graph(adj_data):
+    with open(GRAPH_FILE, "w", encoding="utf-8") as f:
+        json.dump(adj_data, f, ensure_ascii=False, indent=2)
+
+def load_graph():
+    try:
+        if os.path.exists(GRAPH_FILE):
+            with open(GRAPH_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+                adj = {}
+                for k, v in raw.items():
+                    adj[int(k)] = [(int(x[0]), x[1]) for x in v]
+                return adj
+    except Exception:
+        pass
+    adj = {p["id"]: [] for p in campus_places}
+    return adj
+
+def reset_all_data():
+    global campus_places
+    campus_places = init_campus_places.copy()
+    save_places()
+    new_adj = {p["id"]: [] for p in campus_places}
+    save_graph(new_adj)
+
+# ---------------------- 带权无向图（防KeyError崩溃） ----------------------
 class CampusGraph:
     def __init__(self):
-        # 邻接表存储图：key=地点id，value=可直达的地点id列表
-        self.adj = {}
-        # 初始化所有地点为图顶点，初始无连通道路
-        for place in campus_places:
-            self.adj[place["id"]] = []
+        self.adj = load_graph()
 
-    # 添加双向道路（无向边）
-    def add_road(self, id1, id2):
+    def save(self):
+        save_graph(self.adj)
+
+    def add_road(self, id1, id2, distance):
         if id1 not in self.adj or id2 not in self.adj:
-            print("错误：地点编号不存在！")
-            return
-        if id2 not in self.adj[id1]:
-            self.adj[id1].append(id2)
-            self.adj[id2].append(id1)
-            print(f"已修建道路：{id1} <--> {id2}")
-        else:
-            print("两点间已有道路，无需重复添加")
+            return False
+        for v, d in self.adj[id1]:
+            if v == id2:
+                return False
+        self.adj[id1].append((id2, distance))
+        self.adj[id2].append((id1, distance))
+        self.save()
+        return True
 
-    # 删除双向道路
     def del_road(self, id1, id2):
-        if id1 not in self.adj or id2 not in self.adj:
-            print("错误：地点编号不存在！")
-            return
-        if id2 in self.adj[id1]:
-            self.adj[id1].remove(id2)
-            self.adj[id2].remove(id1)
-            print(f"已拆除道路：{id1} <--> {id2}")
-        else:
-            print("两点间没有连通道路")
+        flag = False
+        lst1 = self.adj.get(id1, [])
+        lst2 = self.adj.get(id2, [])
+        for item in lst1:
+            if item[0] == id2:
+                lst1.remove(item)
+                flag = True
+                break
+        for item in lst2:
+            if item[0] == id1:
+                lst2.remove(item)
+                break
+        if flag:
+            self.adj[id1] = lst1
+            self.adj[id2] = lst2
+            self.save()
+        return flag
 
-    # BFS广度优先搜索，查询两点最短路径
-    def bfs_short_path(self, start_id, end_id):
-        if start_id not in self.adj or end_id not in self.adj:
-            return None
+    def bfs_short_node_path(self, start_id, end_id):
         if start_id == end_id:
-            return [start_id]
-        visited = {start_id}
+            return [start_id], 0
+        if start_id not in self.adj or end_id not in self.adj:
+            return None, -1
+        visited = set([start_id])
         queue = [[start_id]]
         while queue:
             path = queue.pop(0)
             cur = path[-1]
-            for neighbor in self.adj[cur]:
+            for neighbor, _ in self.adj.get(cur, []):
                 if neighbor not in visited:
                     new_path = path.copy()
                     new_path.append(neighbor)
                     if neighbor == end_id:
-                        return new_path
+                        return new_path, len(new_path)-1
                     visited.add(neighbor)
                     queue.append(new_path)
-        # 无法到达
-        return None
+        return None, -1
 
-    # 打印全部道路连通关系
-    def show_all_roads(self):
-        print("\n===== 校园道路连通图（邻接表）=====")
-        for pid, link_list in self.adj.items():
-            if link_list:
-                print(f"地点{pid} 连通：{link_list}")
-            else:
-                print(f"地点{pid} 暂无连通道路")
+    def dijkstra_min_dist_path(self, start_id, end_id):
+        if start_id not in self.adj or end_id not in self.adj:
+            return None, -1
+        dist = {pid: float("inf") for pid in self.adj}
+        prev = {pid: None for pid in self.adj}
+        dist[start_id] = 0
+        heap = []
+        heapq.heappush(heap, (0, start_id))
+        visited = set()
+        while heap:
+            cur_dist, cur = heapq.heappop(heap)
+            if cur in visited:
+                continue
+            if cur == end_id:
+                break
+            visited.add(cur)
+            for nxt, w in self.adj.get(cur, []):
+                if dist[nxt] > cur_dist + w:
+                    dist[nxt] = cur_dist + w
+                    prev[nxt] = cur
+                    heapq.heappush(heap, (dist[nxt], nxt))
+        if dist[end_id] == float("inf"):
+            return None, -1
+        path = []
+        cur = end_id
+        while cur is not None:
+            path.append(cur)
+            cur = prev[cur]
+        path.reverse()
+        return path, dist[end_id]
 
-# 全局图实例
 graph = CampusGraph()
 
-# ====================== 原有KMP算法（完整保留V4代码） ======================
+# ---------------------- KMP / BM 字符串模糊检索 ----------------------
 def get_next(pattern):
-    nxt = [0] * len(pattern)
+    nxt = [0]*len(pattern)
     j = 0
     for i in range(1, len(pattern)):
         while j > 0 and pattern[i] != pattern[j]:
-            j = nxt[j - 1]
+            j = nxt[j-1]
         if pattern[i] == pattern[j]:
             j += 1
         nxt[i] = j
     return nxt
+
 def kmp(text, pattern):
-    if pattern == "":
+    if not pattern:
         return True
     nxt = get_next(pattern)
     j = 0
-    for i in range(len(text)):
-        while j > 0 and text[i] != pattern[j]:
-            j = nxt[j - 1]
-        if text[i] == pattern[j]:
+    for c in text:
+        while j > 0 and c != pattern[j]:
+            j = nxt[j-1]
+        if c == pattern[j]:
             j += 1
         if j == len(pattern):
             return True
     return False
 
-# ====================== 原有BM算法（完整保留V4代码） ======================
 def build_bad(pattern):
     bad = {}
-    for i in range(len(pattern)):
-        bad[pattern[i]] = i
+    for idx, c in enumerate(pattern):
+        bad[c] = idx
     return bad
+
 def bm(text, pattern):
-    n = len(text)
-    m = len(pattern)
+    n, m = len(text), len(pattern)
     if m == 0:
         return True
     bad = build_bad(pattern)
     s = 0
     while s <= n - m:
         j = m - 1
-        while j >= 0 and pattern[j] == text[s + j]:
+        while j >= 0 and pattern[j] == text[s+j]:
             j -= 1
         if j < 0:
             return True
-        s += max(1, j - bad.get(text[s + j], -1))
+        s += max(1, j - bad.get(text[s+j], -1))
     return False
 
-# ====================== 原有BST二叉树（完整保留V4代码） ======================
+# ---------------------- BST二叉搜索树模块 ----------------------
 class TreeNode:
     def __init__(self, place):
         self.place = place
-        self.left = None
-        self.right = None
+        self.left = self.right = None
+
 def insert_bst(root, place):
-    if root is None:
+    if not root:
         return TreeNode(place)
     if place["id"] < root.place["id"]:
         root.left = insert_bst(root.left, place)
     else:
         root.right = insert_bst(root.right, place)
     return root
+
 def build_bst():
     root = None
     for p in campus_places:
         root = insert_bst(root, p)
     return root
+
 def bst_search(root, target):
-    if root is None:
+    if not root:
         return None
     if target == root.place["id"]:
         return root.place
@@ -166,191 +270,279 @@ def bst_search(root, target):
         return bst_search(root.left, target)
     else:
         return bst_search(root.right, target)
-def inorder(root):
-    if root:
-        inorder(root.left)
-        print(f"[{root.place['id']}] {root.place['name']} - {root.place['location']}")
-        inorder(root.right)
-def tree_height(root):
-    if root is None:
-        return 0
-    return max(tree_height(root.left), tree_height(root.right)) + 1
-def count_leaf(root):
-    if root is None:
-        return 0
-    if root.left is None and root.right is None:
-        return 1
-    return count_leaf(root.left) + count_leaf(root.right)
 
-# ====================== 原有基础功能函数（完整保留V4） ======================
-def show_all():
-    print("\n=====全部地点=====")
+# ---------------------- 通用工具函数 ----------------------
+def get_id_by_name(name_key):
+    res = []
     for p in campus_places:
-        print(f"[{p['id']}] {p['name']} - {p['location']}")
-def search_by_name():
-    key = input("输入地点名称：")
-    found = False
-    for p in campus_places:
-        if kmp(p["name"], key):
-            print(p)
-            found = True
-    if not found:
-        print("未找到")
-def fuzzy_search():
-    key = input("输入关键字：")
-    found = False
-    for p in campus_places:
-        text = p["name"] + p["location"]
-        if bm(text, key):
-            print(p)
-            found = True
-    if not found:
-        print("未找到")
-def search_by_category():
-    key = input("输入类别：")
-    count = 0
-    for p in campus_places:
-        if key in p["location"]:
-            print(p)
-            count += 1
-    print("共找到", count, "个地点")
-def add_place():
-    id = int(input("编号:"))
-    name = input("名称:")
-    location = input("位置:")
-    campus_places.append({"id": id, "name": name, "location": location})
-    # 新增地点同步加入图顶点
-    graph.adj[id] = []
-    print("添加成功")
-def delete_place():
-    id = int(input("编号:"))
-    for p in campus_places:
-        if p["id"] == id:
-            campus_places.remove(p)
-            # 删除地点同时清除图中所有关联道路
-            del graph.adj[id]
-            for k in graph.adj:
-                if id in graph.adj[k]:
-                    graph.adj[k].remove(id)
-            print("删除成功")
-            return
-    print("未找到")
-def modify_place():
-    id = int(input("编号:"))
-    for p in campus_places:
-        if p["id"] == id:
-            p["name"] = input("新名称:")
-            p["location"] = input("新位置:")
-            print("修改成功")
-            return
-    print("未找到")
-def statistics():
-    print("地点总数:", len(campus_places))
-def bst_query():
-    root = build_bst()
-    id = int(input("输入编号:"))
-    result = bst_search(root, id)
-    if result:
-        print(result)
+        if kmp(p["name"], name_key):
+            res.append(p)
+    if len(res) == 0:
+        return None
+    elif len(res) == 1:
+        return res[0]["id"]
     else:
-        print("未找到")
-def bst_info():
-    root = build_bst()
-    print("树高:", tree_height(root))
-    print("叶子节点数:", count_leaf(root))
+        return res
 
-# ====================== V5新增：图结构专属功能 ======================
-def graph_add_road():
-    a = int(input("输入起点地点ID："))
-    b = int(input("输入终点地点ID："))
-    graph.add_road(a, b)
-def graph_del_road():
-    a = int(input("输入起点地点ID："))
-    b = int(input("输入终点地点ID："))
-    graph.del_road(a, b)
-def graph_find_path():
-    start = int(input("输入出发地点ID："))
-    end = int(input("输入目标地点ID："))
-    path = graph.bfs_short_path(start, end)
-    if path is None:
-        print("两点之间无连通道路，无法到达！")
-    else:
-        print(f"最短通行路径(ID序列)：{path}")
-        # 匹配地点名称展示完整路径
-        name_path = []
-        for pid in path:
-            for p in campus_places:
-                if p["id"] == pid:
-                    name_path.append(p["name"])
-                    break
-        print(f"完整路径名称：{' → '.join(name_path)}")
-def graph_show_road():
-    graph.show_all_roads()
+def get_pos_by_id(pid):
+    for p in campus_places:
+        if p["id"] == pid:
+            return (p["x"], p["y"], p["name"])
+    return None
 
-# ====================== V5更新菜单（保留全部V4功能，新增图选项） ======================
-def menu():
-    print("\n====== 校园导航查询系统 V5.0（图结构版）======")
-    print("===== 原有基础功能 =====")
-    print("1 查看全部地点")
-    print("2 KMP名称查询")
-    print("3 BM模糊查询")
-    print("4 分类查询")
-    print("5 添加地点")
-    print("6 删除地点")
-    print("7 修改地点")
-    print("8 地点统计")
-    print("9 BST编号查询")
-    print("10 BST中序遍历")
-    print("11 BST统计信息")
-    print("===== 新增图-道路连通功能 =====")
-    print("12 查看所有校园道路")
-    print("13 新建两点通行道路")
-    print("14 删除两点通行道路")
-    print("15 查询两点最短通行路径(BFS)")
-    print("0 退出系统")
+def get_name_by_id(pid):
+    for p in campus_places:
+        if p["id"] == pid:
+            return p["name"]
+    return "未知地点"
 
-# ====================== 主程序逻辑 ======================
-def main():
-    while True:
-        menu()
-        choice = input("请选择功能编号：")
-        if choice == "1":
-            show_all()
-        elif choice == "2":
-            search_by_name()
-        elif choice == "3":
-            fuzzy_search()
-        elif choice == "4":
-            search_by_category()
-        elif choice == "5":
-            add_place()
-        elif choice == "6":
-            delete_place()
-        elif choice == "7":
-            modify_place()
-        elif choice == "8":
-            statistics()
-        elif choice == "9":
-            bst_query()
-        elif choice == "10":
-            root = build_bst()
-            inorder(root)
-        elif choice == "11":
-            bst_info()
-        # V5新增图功能分支
-        elif choice == "12":
-            graph_show_road()
-        elif choice == "13":
-            graph_add_road()
-        elif choice == "14":
-            graph_del_road()
-        elif choice == "15":
-            graph_find_path()
-        elif choice == "0":
-            print("系统退出，感谢使用！")
-            break
+# ---------------------- GUI主界面类 ----------------------
+class NavGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("什邡校区校园导航系统 V6.3 权限完整版")
+        self.root.geometry("1150x720")
+        self.path_highlight = []
+        self.init_ui()
+        self.refresh_map()
+
+    def init_ui(self):
+        # 左侧地图画布
+        self.left_frame = tk.Frame(self.root)
+        self.left_frame.pack(side="left", fill="both", expand=True, padx=6, pady=6)
+        self.canvas = tk.Canvas(self.left_frame, bg="#e8f3e8")
+        self.canvas.pack(fill="both", expand=True)
+        # 右侧控制面板
+        self.right_frame = tk.Frame(self.root, width=320)
+        self.right_frame.pack(side="right", fill="y", padx=6, pady=6)
+
+        # 管理员登录按钮
+        ttk.Button(self.right_frame, text="管理员登录", command=self.admin_login).pack(fill="x", pady=2)
+
+        # 路线导航区域（所有用户可用）
+        ttk.Label(self.right_frame, text="路线导航查询", font=("黑体", 14, "bold")).pack(pady=4)
+        tk.Label(self.right_frame, text="起点地点名称：").pack(anchor="w")
+        self.start_entry = ttk.Entry(self.right_frame, font=("微软雅黑", 10))
+        self.start_entry.pack(fill="x", pady=2)
+        tk.Label(self.right_frame, text="终点地点名称：").pack(anchor="w")
+        self.end_entry = ttk.Entry(self.right_frame, font=("微软雅黑", 10))
+        self.end_entry.pack(fill="x", pady=2)
+
+        btn_frame = tk.Frame(self.right_frame)
+        btn_frame.pack(pady=6, fill="x")
+        ttk.Button(btn_frame, text="最少中转路线", command=self.calc_bfs).grid(row=0, column=0, padx=3)
+        ttk.Button(btn_frame, text="最短距离路线", command=self.calc_dijk).grid(row=0, column=1, padx=3)
+        ttk.Button(self.right_frame, text="清除路线高亮", command=self.clear_highlight).pack(fill="x", pady=3)
+
+        # 操作日志文本框
+        ttk.Label(self.right_frame, text="操作日志 & 分段导航指引：").pack(anchor="w", pady=2)
+        self.text_box = scrolledtext.ScrolledText(self.right_frame, height=14, font=("微软雅黑", 9))
+        self.text_box.pack(fill="both", expand=True)
+
+        # 管理员道路管理区域
+        ttk.Separator(self.right_frame).pack(fill="x", pady=10)
+        ttk.Label(self.right_frame, text="【管理员专用】道路路网管理", font=("黑体", 12, "bold")).pack()
+        road_f = tk.Frame(self.right_frame)
+        road_f.pack(fill="x", pady=3)
+        tk.Label(road_f, text="起点ID:").grid(row=0, column=0)
+        self.rid1 = ttk.Entry(road_f, width=6)
+        self.rid1.grid(row=0, column=1)
+        tk.Label(road_f, text="终点ID:").grid(row=0, column=2)
+        self.rid2 = ttk.Entry(road_f, width=6)
+        self.rid2.grid(row=0, column=3)
+
+        tk.Label(self.right_frame, text="道路步行距离(米)：").pack(anchor="w")
+        self.dis_entry = ttk.Entry(self.right_frame)
+        self.dis_entry.pack(fill="x", pady=2)
+
+        btn_r = tk.Frame(self.right_frame)
+        btn_r.pack(fill="x", pady=4)
+        self.btn_add = ttk.Button(btn_r, text="新建连通道路", command=self.add_road_gui)
+        self.btn_add.grid(row=0, column=0, padx=3)
+        self.btn_del = ttk.Button(btn_r, text="删除现有道路", command=self.del_road_gui)
+        self.btn_del.grid(row=0, column=1, padx=3)
+
+        # 重置地图按钮
+        ttk.Separator(self.right_frame).pack(fill="x", pady=10)
+        self.btn_reset = ttk.Button(self.right_frame, text="一键重置校区原始地图数据", command=self.reset_data)
+        self.btn_reset.pack(fill="x", pady=4)
+
+    # 日志统一输出函数
+    def log_print(self, msg):
+        self.text_box.insert(tk.END, msg + "\n")
+        self.text_box.see(tk.END)
+
+    # 管理员登录弹窗（修复参数错误+显示密码勾选框）
+    def admin_login(self):
+        global IS_ADMIN
+        login_win = tk.Toplevel(self.root)
+        login_win.title("管理员登录")
+        login_win.geometry("280x180")
+        login_win.transient(self.root)
+        login_win.grab_set()
+
+        ttk.Label(login_win, text="请输入管理员密码", font=("黑体",11)).pack(pady=12)
+        pwd_var = tk.StringVar()
+        pwd_entry = ttk.Entry(login_win, textvariable=pwd_var, show="*")
+        # 修复：标准pack参数 padx 替代错误的pad
+        pwd_entry.pack(pady=4, fill="x", padx=30)
+
+        # 显示密码勾选框
+        show_pwd = tk.BooleanVar()
+        def toggle_pwd():
+            if show_pwd.get():
+                pwd_entry.config(show="")
+            else:
+                pwd_entry.config(show="*")
+        ttk.Checkbutton(login_win, text="显示密码", variable=show_pwd, command=toggle_pwd).pack()
+
+        def check_login():
+            global IS_ADMIN
+            if pwd_var.get() == ADMIN_PWD:
+                IS_ADMIN = True
+                self.log_print("✅ 管理员登录成功，已解锁道路编辑权限")
+                login_win.destroy()
+            else:
+                self.log_print("❌ 密码错误，未获得管理员权限，无法编辑道路")
+
+        ttk.Button(login_win, text="确认登录", command=check_login).pack(pady=10)
+        self.root.wait_window(login_win)
+
+    def refresh_map(self):
+        self.canvas.delete("all")
+        self.path_highlight.clear()
+        # 绘制所有道路
+        for u, link_list in graph.adj.items():
+            pos_u = get_pos_by_id(u)
+            if not pos_u:
+                continue
+            x1, y1, _ = pos_u
+            for v, d in link_list:
+                pos_v = get_pos_by_id(v)
+                if not pos_v:
+                    continue
+                x2, y2, _ = pos_v
+                self.canvas.create_line(x1, y1, x2, y2, fill="#777777", dash=(5, 3), tags="road")
+        # 绘制点位与名称
+        for p in campus_places:
+            x, y, name = p["x"], p["y"], p["name"]
+            self.canvas.create_oval(x-11, y-11, x+11, y+11, fill="#3b82f6", tags="point")
+            self.canvas.create_text(x, y+20, text=name, font=("微软雅黑", 8))
+
+    def clear_highlight(self):
+        self.refresh_map()
+        self.log_print("已清除路线高亮")
+
+    def draw_path(self, path):
+        self.clear_highlight()
+        for i in range(len(path)-1):
+            a = path[i]
+            b = path[i+1]
+            x1, y1, _ = get_pos_by_id(a)
+            x2, y2, _ = get_pos_by_id(b)
+            line = self.canvas.create_line(x1, y1, x2, y2, fill="#ef4444", width=4)
+            self.path_highlight.append(line)
+        self.canvas.update()
+
+    # 最少中转路线计算
+    def calc_bfs(self):
+        self.text_box.delete(1.0, tk.END)
+        sname = self.start_entry.get().strip()
+        ename = self.end_entry.get().strip()
+        sid = get_id_by_name(sname)
+        eid = get_id_by_name(ename)
+        if not sid or not eid:
+            self.log_print("【错误】未找到该起点/终点建筑，请重新输入名称")
+            return
+        path, step = graph.bfs_short_node_path(sid, eid)
+        if not path:
+            self.log_print("【提示】两点暂无连通道路，无法规划路线")
+            return
+        self.draw_path(path)
+        self.log_print(f"【最少中转路线】途经路段数：{step}")
+        self.log_print("完整路线：" + " → ".join([get_name_by_id(i) for i in path]))
+        self.log_print("====分段步行指引====")
+        for i in range(len(path)-1):
+            a = get_name_by_id(path[i])
+            b = get_name_by_id(path[i+1])
+            self.log_print(f"{i+1}. {a} → {b}")
+
+    # 最短距离路线计算
+    def calc_dijk(self):
+        self.text_box.delete(1.0, tk.END)
+        sname = self.start_entry.get().strip()
+        ename = self.end_entry.get().strip()
+        sid = get_id_by_name(sname)
+        eid = get_id_by_name(ename)
+        if not sid or not eid:
+            self.log_print("【错误】未找到该起点/终点建筑，请重新输入名称")
+            return
+        path, dist = graph.dijkstra_min_dist_path(sid, eid)
+        if not path:
+            self.log_print("【提示】两点暂无连通道路，无法规划路线")
+            return
+        self.draw_path(path)
+        self.log_print(f"【最短步行距离路线】总路程：{dist} 米")
+        self.log_print("完整路线：" + " → ".join([get_name_by_id(i) for i in path]))
+        self.log_print("====分段步行指引====")
+        for i in range(len(path)-1):
+            a = get_name_by_id(path[i])
+            b = get_name_by_id(path[i+1])
+            self.log_print(f"{i+1}. {a} → {b}")
+
+    # 新建道路（权限校验）
+    def add_road_gui(self):
+        if not IS_ADMIN:
+            self.log_print("⚠️ 权限不足：仅管理员可编辑道路，请先登录")
+            return
+        try:
+            a = int(self.rid1.get())
+            b = int(self.rid2.get())
+            d = int(self.dis_entry.get())
+        except ValueError:
+            self.log_print("❌ 输入错误：ID与距离必须填写纯数字")
+            return
+        res = graph.add_road(a, b, d)
+        if res:
+            msg = f"✅ 新建道路成功：{get_name_by_id(a)} ↔ {get_name_by_id(b)}，距离{d}米"
+            self.log_print(msg)
+            self.refresh_map()
         else:
-            print("输入无效，请输入菜单内数字！")
+            self.log_print("⚠️ 点位不存在或该道路已搭建")
 
+    # 删除道路（权限校验）
+    def del_road_gui(self):
+        if not IS_ADMIN:
+            self.log_print("⚠️ 权限不足：仅管理员可编辑道路，请先登录")
+            return
+        try:
+            a = int(self.rid1.get())
+            b = int(self.rid2.get())
+        except ValueError:
+            self.log_print("❌ 输入错误：ID必须填写纯数字")
+            return
+        res = graph.del_road(a, b)
+        if res:
+            self.log_print("✅ 道路删除成功")
+            self.refresh_map()
+        else:
+            self.log_print("⚠️ 未查询到两点间的道路")
+
+    # 重置地图（权限校验）
+    def reset_data(self):
+        if not IS_ADMIN:
+            self.log_print("⚠️ 权限不足：仅管理员可重置地图，请先登录")
+            return
+        from tkinter import messagebox
+        if messagebox.askyesno("确认重置", "重置将清空所有自建道路与新增点位，恢复原始什邡校区地图，确定继续？"):
+            reset_all_data()
+            self.refresh_map()
+            self.text_box.delete(1.0, tk.END)
+            self.log_print("✅ 地图数据已重置为初始状态")
+
+# 程序入口启动
 if __name__ == "__main__":
-    main()
+    load_places()
+    main_root = tk.Tk()
+    app = NavGUI(main_root)
+    main_root.mainloop()
